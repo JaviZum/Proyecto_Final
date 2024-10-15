@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionario de Preguntas</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #f0f0f0; /* Fondo gris claro */
+            font-family: Arial, sans-serif;
+        }
+
+        #quiz-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #resultado-final {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .destello {
+            animation: destello 1s infinite alternate;
+        }
+
+        @keyframes destello {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-container">
+        <h2>Iniciar Sesión</h2>
+        <form id="auth-form">
+            <label for="username">Nombre de Usuario:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+    </div>
+
+    <div id="quiz-container" style="display:none;">
+        <h1 style="display: flex; justify-content: space-between; width: 100%;"> 
+            Cuestionario 
+            <span id="mensaje-final" style="display:none; font-size: 1.5em;"></span>
+        </h1>
+        <div>
+            <span id="contador-preguntas">Ronda: 1/5</span>
+            <span id="contador-correctas">Correctas: 0</span>
+            <span id="contador-incorrectas">Incorrectas: 0</span>
+            <button id="evaluar-btn" disabled>Evaluar</button>
+            <button id="siguiente-ronda-btn" style="display:none;">Siguiente Ronda</button>
+        </div>
+        <form id="quiz-form">
+            <div id="preguntas-contenedor"></div>
+        </form>
+        <div id="resultado-final" style="display:flex; justify-content:center; align-items:center;">
+            <span id="mensaje-final" style="display:none;"></span>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('auth-form').onsubmit = function(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'usuario' && password === 'contraseña') {
+                document.getElementById('auth-container').style.display = 'none';
+                document.getElementById('quiz-container').style.display = 'block';
+                generarPreguntas();
+            } else {
+                alert('Credenciales incorrectas, intenta nuevamente.');
+            }
+        };
+
+        let rondaActual = 1;
+        let correctasTotales = 0;
+        let incorrectasTotales = 0;
+        const totalRondas = 5;
+        let evaluado = false;
+
+        async function generarPreguntas() {
+            const response = await fetch('http://localhost:3033/preguntas');
+            const preguntas = await response.json();
+
+            const contenedorPreguntas = document.getElementById('preguntas-contenedor');
+            contenedorPreguntas.innerHTML = '';
+
+            preguntas.forEach(pregunta => {
+                const respuestas = [
+                    { texto: pregunta.respuesta_correcta, correcta: true },
+                    { texto: pregunta.respuesta_incorrecta1, correcta: false },
+                    { texto: pregunta.respuesta_incorrecta2, correcta: false },
+                    { texto: pregunta.respuesta_incorrecta3, correcta: false }
+                ];
+
+                respuestas.sort(() => Math.random() - 0.5);
+
+                const preguntaHTML = `
+                    <fieldset class="question">
+                        <legend>${pregunta.pregunta}</legend>
+                        ${respuestas.map((respuesta, index) => `
+                            <input type="radio" id="respuesta${pregunta.id}_${index}" name="pregunta${pregunta.id}" value="${respuesta.texto}" data-correcta="${respuesta.correcta}">
+                            <label for="respuesta${pregunta.id}_${index}">${respuesta.texto}</label><br>
+                        `).join('')}
+                    </fieldset>
+                `;
+                contenedorPreguntas.innerHTML += preguntaHTML;
+
+                const radios = contenedorPreguntas.querySelectorAll(`input[name="pregunta${pregunta.id}"]`);
+                radios.forEach(radio => {
+                    radio.addEventListener('change', validarRespuestas);
+                });
+            });
+
+            document.getElementById('contador-preguntas').textContent = `Ronda: ${rondaActual}/5`;
+            evaluado = false;
+            document.getElementById('evaluar-btn').disabled = true; // Desactivar botón de evaluar
+        }
+
+        function validarRespuestas() {
+            const inputs = document.querySelectorAll('input[type="radio"]');
+            const todasRespondidas = [...inputs].every(input => {
+                return input.checked || !input.closest('fieldset').querySelector('input[type="radio"]');
+            });
+
+            // Habilitar el botón de evaluar solo si todas las preguntas están respondidas
+            const todasPreguntasRespondidas = [...document.querySelectorAll('.question')].every(question => {
+                return question.querySelector('input[type="radio"]:checked');
+            });
+
+            document.getElementById('evaluar-btn').disabled = !todasPreguntasRespondidas; 
+        }
+
+        document.getElementById('evaluar-btn').onclick = function(event) {
+            event.preventDefault();
+
+            if (evaluado) {
+                alert("Ya has evaluado esta ronda. Por favor, pasa a la siguiente ronda.");
+                return;
+            }
+
+            const inputs = document.querySelectorAll('input[type="radio"]:checked');
+            let correctas = 0;
+            let incorrectas = 0;
+
+            inputs.forEach(input => {
+                const esCorrecta = input.dataset.correcta === 'true';
+                const label = document.querySelector(`label[for="${input.id}"]`);
+                
+                if (esCorrecta) {
+                    label.style.color = 'green';
+                    label.style.fontWeight = 'bold';
+                    correctas++;
+                } else {
+                    label.style.color = 'red';
+                    label.style.fontWeight = 'bold';
+                    incorrectas++;
+                }
+            });
+
+            correctasTotales += correctas;
+            incorrectasTotales += incorrectas;
+
+            document.getElementById('contador-correctas').textContent = `Correctas: ${correctasTotales}`;
+            document.getElementById('contador-incorrectas').textContent = `Incorrectas: ${incorrectasTotales}`;
+
+            evaluado = true;
+
+            if (rondaActual < totalRondas) {
+                document.getElementById('siguiente-ronda-btn').style.display = 'inline-block';
+            } else {
+                mostrarResultadoFinal();
+            }
+        };
+
+        function mostrarResultadoFinal() {
+            const totalRespuestas = correctasTotales + incorrectasTotales;
+            const porcentaje = (correctasTotales / totalRespuestas) * 100;
+            const mensajeFinal = document.getElementById('mensaje-final');
+
+            mensajeFinal.style.display = 'inline'; 
+            mensajeFinal.style.fontSize = '1em'; 
+
+            if (porcentaje > 50) {
+                mensajeFinal.textContent = `¡Felicidades! Tu porcentaje de aciertos es: ${porcentaje.toFixed(2)}%`;
+                mensajeFinal.style.color = 'green';
+            } else {
+                mensajeFinal.textContent = `Ánimo, tu porcentaje de aciertos es: ${porcentaje.toFixed(2)}%`;
+                mensajeFinal.style.color = 'red';
+            }
+
+            mensajeFinal.classList.add('destello');
+            document.getElementById('resultado-final').style.display = 'block';
+        }
+
+        document.getElementById('siguiente-ronda-btn').onclick = function() {
+            rondaActual++;
+            generarPreguntas();
+            document.getElementById('siguiente-ronda-btn').style.display = 'none';
+        };
+    </script>
+</body>
+</html>

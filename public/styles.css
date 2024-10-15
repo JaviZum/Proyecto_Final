@@ -1,0 +1,77 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0; /* Fondo gris clarito */
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  font-family: 'Lobster', cursive;
+  font-size: 3em;
+  color: #ff6347;
+}
+
+form, label, input {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2em;
+  color: #333;
+}
+
+h2 {
+  text-align: center;
+  color: #333;
+}
+
+#auth-container, #quiz-container {
+  max-width: 600px;
+  margin: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+fieldset {
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+legend {
+  font-weight: bold;
+  color: #333;
+}
+
+input[type="radio"] {
+  margin-right: 10px;
+}
+
+label {
+  margin-right: 20px;
+}
+
+button {
+  display: inline-block;
+  padding: 10px;
+  background-color: #5cb85c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #4cae4c;
+}
+
+.destello {
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
